@@ -40,14 +40,13 @@
 #ifndef PSA_CRYPTO_SIZES_H
 #define PSA_CRYPTO_SIZES_H
 
-/*
- * Include the build-time configuration information file. Here, we do not
- * include `"mbedtls/build_info.h"` directly but `"psa/build_info.h"`, which
- * is basically just an alias to it. This is to ease the maintenance of the
- * PSA cryptography repository which has a different build system and
- * configuration.
- */
-#include "psa/build_info.h"
+/* Include the Mbed TLS configuration file, the way Mbed TLS does it
+ * in each of its header files. */
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #define PSA_BITS_TO_BYTES(bits) (((bits) + 7) / 8)
 #define PSA_BYTES_TO_BITS(bytes) ((bytes) * 8)
@@ -69,6 +68,8 @@
  */
 #define PSA_HASH_LENGTH(alg)                                        \
     (                                                               \
+        PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_MD2 ? 16 :            \
+        PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_MD4 ? 16 :            \
         PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_MD5 ? 16 :            \
         PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_RIPEMD160 ? 20 :      \
         PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_SHA_1 ? 20 :          \
@@ -101,6 +102,8 @@
  */
 #define PSA_HASH_BLOCK_LENGTH(alg)                                  \
     (                                                               \
+        PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_MD2 ? 16 :            \
+        PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_MD4 ? 64 :            \
         PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_MD5 ? 64 :            \
         PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_RIPEMD160 ? 64 :      \
         PSA_ALG_HMAC_GET_HASH(alg) == PSA_ALG_SHA_1 ? 64 :          \
@@ -197,31 +200,31 @@
 
 /* The maximum size of an ECC key on this implementation, in bits.
  * This is a vendor-specific macro. */
-#if defined(PSA_WANT_ECC_SECP_R1_521)
+#if defined(MBEDTLS_ECP_DP_SECP521R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 521
-#elif defined(PSA_WANT_ECC_BRAINPOOL_P_R1_512)
+#elif defined(MBEDTLS_ECP_DP_BP512R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 512
-#elif defined(PSA_WANT_ECC_MONTGOMERY_448)
+#elif defined(MBEDTLS_ECP_DP_CURVE448_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 448
-#elif defined(PSA_WANT_ECC_SECP_R1_384)
+#elif defined(MBEDTLS_ECP_DP_SECP384R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 384
-#elif defined(PSA_WANT_ECC_BRAINPOOL_P_R1_384)
+#elif defined(MBEDTLS_ECP_DP_BP384R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 384
-#elif defined(PSA_WANT_ECC_SECP_R1_256)
+#elif defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 256
-#elif defined(PSA_WANT_ECC_SECP_K1_256)
+#elif defined(MBEDTLS_ECP_DP_SECP256K1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 256
-#elif defined(PSA_WANT_ECC_BRAINPOOL_P_R1_256)
+#elif defined(MBEDTLS_ECP_DP_BP256R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 256
-#elif defined(PSA_WANT_ECC_MONTGOMERY_255)
+#elif defined(MBEDTLS_ECP_DP_CURVE25519_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 255
-#elif defined(PSA_WANT_ECC_SECP_R1_224)
+#elif defined(MBEDTLS_ECP_DP_SECP224R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 224
-#elif defined(PSA_WANT_ECC_SECP_K1_224)
+#elif defined(MBEDTLS_ECP_DP_SECP224K1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 224
-#elif defined(PSA_WANT_ECC_SECP_R1_192)
+#elif defined(MBEDTLS_ECP_DP_SECP192R1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 192
-#elif defined(PSA_WANT_ECC_SECP_K1_192)
+#elif defined(MBEDTLS_ECP_DP_SECP192K1_ENABLED)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 192
 #else
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 0
@@ -243,15 +246,6 @@
  * for #PSA_TLS12_PSK_TO_MS_PSK_MAX_SIZE.
  */
 #define PSA_TLS12_PSK_TO_MS_PSK_MAX_SIZE 128
-
-/* The expected size of input passed to psa_tls12_ecjpake_to_pms_input,
- * which is expected to work with P-256 curve only. */
-#define PSA_TLS12_ECJPAKE_TO_PMS_INPUT_SIZE 65
-
-/* The size of a serialized K.X coordinate to be used in
- * psa_tls12_ecjpake_to_pms_input. This function only accepts the P-256
- * curve. */
-#define PSA_TLS12_ECJPAKE_TO_PMS_DATA_SIZE 32
 
 /** The maximum size of a block cipher. */
 #define PSA_BLOCK_CIPHER_BLOCK_MAX_SIZE 16
@@ -1005,7 +999,6 @@
       (alg) == PSA_ALG_CBC_PKCS7) ? PSA_BLOCK_CIPHER_BLOCK_LENGTH(key_type) : \
      (key_type) == PSA_KEY_TYPE_CHACHA20 && \
      (alg) == PSA_ALG_STREAM_CIPHER ? 12 : \
-     (alg) == PSA_ALG_CCM_STAR_NO_TAG ? 13 : \
      0)
 
 /** The maximum IV size for all supported cipher algorithms, in bytes.

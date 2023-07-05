@@ -23,6 +23,11 @@ DLEXT ?= so
 EXEXT=
 SHARED_SUFFIX=
 
+# Zlib shared library extensions:
+ifdef ZLIB
+LOCAL_LDFLAGS += -lz
+endif
+
 ifdef FUZZINGENGINE
 LOCAL_LDFLAGS += -lFuzzingEngine
 endif

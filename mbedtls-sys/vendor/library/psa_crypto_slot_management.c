@@ -411,13 +411,15 @@ psa_status_t psa_unlock_key_slot(psa_key_slot_t *slot)
 
     /*
      * As the return error code may not be handled in case of multiple errors,
-     * do our best to report if the lock counter is equal to zero. Assert with
-     * MBEDTLS_TEST_HOOK_TEST_ASSERT that the lock counter is strictly greater
-     * than zero: if the MBEDTLS_TEST_HOOKS configuration option is enabled and
-     * the function is called as part of the execution of a test suite, the
-     * execution of the test suite is stopped in error if the assertion fails.
+     * do our best to report if the lock counter is equal to zero: if
+     * available call MBEDTLS_PARAM_FAILED that may terminate execution (if
+     * called as part of the execution of a unit test suite this will stop the
+     * test suite execution).
      */
-    MBEDTLS_TEST_HOOK_TEST_ASSERT(slot->lock_count > 0);
+#ifdef MBEDTLS_CHECK_PARAMS
+    MBEDTLS_PARAM_FAILED(slot->lock_count > 0);
+#endif
+
     return PSA_ERROR_CORRUPTION_DETECTED;
 }
 
@@ -438,8 +440,14 @@ psa_status_t psa_validate_key_location(psa_key_lifetime_t lifetime,
         (void) p_drv;
 #endif /* MBEDTLS_PSA_CRYPTO_SE_C */
 
+#if defined(MBEDTLS_PSA_CRYPTO_DRIVERS)
         /* Key location for external keys gets checked by the wrapper */
         return PSA_SUCCESS;
+#else /* MBEDTLS_PSA_CRYPTO_DRIVERS */
+        /* No support for external lifetimes at all, or dynamic interface
+         * did not find driver for requested lifetime. */
+        return PSA_ERROR_INVALID_ARGUMENT;
+#endif /* MBEDTLS_PSA_CRYPTO_DRIVERS */
     } else {
         /* Local/internal keys are always valid */
         return PSA_SUCCESS;

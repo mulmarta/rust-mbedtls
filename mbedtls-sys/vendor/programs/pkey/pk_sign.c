@@ -17,18 +17,22 @@
  *  limitations under the License.
  */
 
-#include "mbedtls/build_info.h"
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #include "mbedtls/platform.h"
 
 #if !defined(MBEDTLS_BIGNUM_C) || !defined(MBEDTLS_ENTROPY_C) ||  \
-    !defined(MBEDTLS_MD_CAN_SHA256) || !defined(MBEDTLS_MD_C) || \
+    !defined(MBEDTLS_SHA256_C) || !defined(MBEDTLS_MD_C) || \
     !defined(MBEDTLS_PK_PARSE_C) || !defined(MBEDTLS_FS_IO) ||    \
     !defined(MBEDTLS_CTR_DRBG_C)
 int main(void)
 {
     mbedtls_printf("MBEDTLS_BIGNUM_C and/or MBEDTLS_ENTROPY_C and/or "
-                   "MBEDTLS_MD_CAN_SHA256 and/or MBEDTLS_MD_C and/or "
+                   "MBEDTLS_SHA256_C and/or MBEDTLS_MD_C and/or "
                    "MBEDTLS_PK_PARSE_C and/or MBEDTLS_FS_IO and/or "
                    "MBEDTLS_CTR_DRBG_C not defined.\n");
     mbedtls_exit(0);
@@ -86,8 +90,7 @@ int main(int argc, char *argv[])
     mbedtls_printf("\n  . Reading private key from '%s'", argv[1]);
     fflush(stdout);
 
-    if ((ret = mbedtls_pk_parse_keyfile(&pk, argv[1], "",
-                                        mbedtls_ctr_drbg_random, &ctr_drbg)) != 0) {
+    if ((ret = mbedtls_pk_parse_keyfile(&pk, argv[1], "")) != 0) {
         mbedtls_printf(" failed\n  ! Could not parse '%s'\n", argv[1]);
         goto exit;
     }
@@ -106,8 +109,7 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
-    if ((ret = mbedtls_pk_sign(&pk, MBEDTLS_MD_SHA256, hash, 0,
-                               buf, sizeof(buf), &olen,
+    if ((ret = mbedtls_pk_sign(&pk, MBEDTLS_MD_SHA256, hash, 0, buf, &olen,
                                mbedtls_ctr_drbg_random, &ctr_drbg)) != 0) {
         mbedtls_printf(" failed\n  ! mbedtls_pk_sign returned -0x%04x\n", (unsigned int) -ret);
         goto exit;
@@ -147,8 +149,13 @@ exit:
     }
 #endif
 
+#if defined(_WIN32)
+    mbedtls_printf("  + Press Enter to exit this program.\n");
+    fflush(stdout); getchar();
+#endif
+
     mbedtls_exit(exit_code);
 }
 #endif /* MBEDTLS_BIGNUM_C && MBEDTLS_ENTROPY_C &&
-          MBEDTLS_MD_CAN_SHA256 && MBEDTLS_PK_PARSE_C && MBEDTLS_FS_IO &&
+          MBEDTLS_SHA256_C && MBEDTLS_PK_PARSE_C && MBEDTLS_FS_IO &&
           MBEDTLS_CTR_DRBG_C */

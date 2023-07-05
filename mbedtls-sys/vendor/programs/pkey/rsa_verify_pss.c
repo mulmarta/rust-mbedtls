@@ -17,18 +17,22 @@
  *  limitations under the License.
  */
 
-#include "mbedtls/build_info.h"
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #include "mbedtls/platform.h"
 
 #if !defined(MBEDTLS_MD_C) || !defined(MBEDTLS_ENTROPY_C) ||  \
-    !defined(MBEDTLS_RSA_C) || !defined(MBEDTLS_MD_CAN_SHA256) ||        \
+    !defined(MBEDTLS_RSA_C) || !defined(MBEDTLS_SHA256_C) ||        \
     !defined(MBEDTLS_PK_PARSE_C) || !defined(MBEDTLS_FS_IO) ||    \
     !defined(MBEDTLS_CTR_DRBG_C)
 int main(void)
 {
     mbedtls_printf("MBEDTLS_MD_C and/or MBEDTLS_ENTROPY_C and/or "
-                   "MBEDTLS_RSA_C and/or MBEDTLS_MD_CAN_SHA256 and/or "
+                   "MBEDTLS_RSA_C and/or MBEDTLS_SHA256_C and/or "
                    "MBEDTLS_PK_PARSE_C and/or MBEDTLS_FS_IO and/or "
                    "MBEDTLS_CTR_DRBG_C not defined.\n");
     mbedtls_exit(0);
@@ -81,12 +85,7 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
-    if ((ret = mbedtls_rsa_set_padding(mbedtls_pk_rsa(pk),
-                                       MBEDTLS_RSA_PKCS_V21,
-                                       MBEDTLS_MD_SHA256)) != 0) {
-        mbedtls_printf(" failed\n  ! Invalid padding\n");
-        goto exit;
-    }
+    mbedtls_rsa_set_padding(mbedtls_pk_rsa(pk), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
 
     /*
      * Extract the RSA signature from the file
@@ -129,7 +128,12 @@ int main(int argc, char *argv[])
 exit:
     mbedtls_pk_free(&pk);
 
+#if defined(_WIN32)
+    mbedtls_printf("  + Press Enter to exit this program.\n");
+    fflush(stdout); getchar();
+#endif
+
     mbedtls_exit(exit_code);
 }
-#endif /* MBEDTLS_BIGNUM_C && MBEDTLS_RSA_C && MBEDTLS_MD_CAN_SHA256 &&
+#endif /* MBEDTLS_BIGNUM_C && MBEDTLS_RSA_C && MBEDTLS_SHA256_C &&
           MBEDTLS_PK_PARSE_C && MBEDTLS_FS_IO */

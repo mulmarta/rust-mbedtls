@@ -62,9 +62,8 @@ from mbedtls_dev import build_tree
 
 # Naming patterns to check against. These are defined outside the NameCheck
 # class for ease of modification.
-PUBLIC_MACRO_PATTERN = r"^(MBEDTLS|PSA)_[0-9A-Z_]*[0-9A-Z]$"
-INTERNAL_MACRO_PATTERN = r"^[0-9A-Za-z_]*[0-9A-Z]$"
-CONSTANTS_PATTERN = PUBLIC_MACRO_PATTERN
+MACRO_PATTERN = r"^(MBEDTLS|PSA)_[0-9A-Z_]*[0-9A-Z]$"
+CONSTANTS_PATTERN = MACRO_PATTERN
 IDENTIFIER_PATTERN = r"^(mbedtls|psa)_[0-9a-z_]*[0-9a-z]$"
 
 class Match(): # pylint: disable=too-few-public-methods
@@ -231,7 +230,7 @@ class CodeParser():
 
         # Globally excluded filenames.
         # Note that "*" can match directory separators in exclude lists.
-        self.excluded_files = ["*/bn_mul", "*/compat-2.x.h"]
+        self.excluded_files = ["*/bn_mul", "*/compat-1.3.h"]
 
     def comprehensive_parse(self):
         """
@@ -246,18 +245,15 @@ class CodeParser():
             .format(str(self.excluded_files))
         )
 
-        all_macros = {"public": [], "internal": [], "private":[]}
-        all_macros["public"] = self.parse_macros([
+        all_macros = self.parse_macros([
             "include/mbedtls/*.h",
             "include/psa/*.h",
+            "library/*.h",
+            "tests/include/test/drivers/*.h",
             "3rdparty/everest/include/everest/everest.h",
             "3rdparty/everest/include/everest/x25519.h"
         ])
-        all_macros["internal"] = self.parse_macros([
-            "library/*.h",
-            "tests/include/test/drivers/*.h",
-        ])
-        all_macros["private"] = self.parse_macros([
+        private_macros = self.parse_macros([
             "library/*.c",
         ])
         enum_consts = self.parse_enum_consts([
@@ -274,7 +270,7 @@ class CodeParser():
             "library/*.h",
             "3rdparty/everest/include/everest/everest.h",
             "3rdparty/everest/include/everest/x25519.h"
-        ], ["3rdparty/p256-m/p256-m/p256-m.h"])
+        ])
         mbed_psa_words = self.parse_mbed_psa_words([
             "include/mbedtls/*.h",
             "include/psa/*.h",
@@ -284,31 +280,26 @@ class CodeParser():
             "library/*.c",
             "3rdparty/everest/library/everest.c",
             "3rdparty/everest/library/x25519.c"
-        ], ["library/psa_crypto_driver_wrappers.c"])
+        ])
         symbols = self.parse_symbols()
 
         # Remove identifier macros like mbedtls_printf or mbedtls_calloc
         identifiers_justname = [x.name for x in identifiers]
-        actual_macros = {"public": [], "internal": []}
-        for scope in actual_macros:
-            for macro in all_macros[scope]:
-                if macro.name not in identifiers_justname:
-                    actual_macros[scope].append(macro)
+        actual_macros = []
+        for macro in all_macros:
+            if macro.name not in identifiers_justname:
+                actual_macros.append(macro)
 
         self.log.debug("Found:")
         # Aligns the counts on the assumption that none exceeds 4 digits
-        for scope in actual_macros:
-            self.log.debug("  {:4} Total {} Macros"
-                           .format(len(all_macros[scope]), scope))
-            self.log.debug("  {:4} {} Non-identifier Macros"
-                           .format(len(actual_macros[scope]), scope))
+        self.log.debug("  {:4} Total Macros".format(len(all_macros)))
+        self.log.debug("  {:4} Non-identifier Macros".format(len(actual_macros)))
         self.log.debug("  {:4} Enum Constants".format(len(enum_consts)))
         self.log.debug("  {:4} Identifiers".format(len(identifiers)))
         self.log.debug("  {:4} Exported Symbols".format(len(symbols)))
         return {
-            "public_macros": actual_macros["public"],
-            "internal_macros": actual_macros["internal"],
-            "private_macros": all_macros["private"],
+            "macros": actual_macros,
+            "private_macros": private_macros,
             "enum_consts": enum_consts,
             "identifiers": identifiers,
             "excluded_identifiers": excluded_identifiers,
@@ -686,8 +677,8 @@ class CodeParser():
 
         # Back up the config and atomically compile with the full configuration.
         shutil.copy(
-            "include/mbedtls/mbedtls_config.h",
-            "include/mbedtls/mbedtls_config.h.bak"
+            "include/mbedtls/config.h",
+            "include/mbedtls/config.h.bak"
         )
         try:
             # Use check=True in all subprocess calls so that failures are raised
@@ -734,8 +725,8 @@ class CodeParser():
             # Put back the original config regardless of there being errors.
             # Works also for keyboard interrupts.
             shutil.move(
-                "include/mbedtls/mbedtls_config.h.bak",
-                "include/mbedtls/mbedtls_config.h"
+                "include/mbedtls/config.h.bak",
+                "include/mbedtls/config.h"
             )
 
         return symbols
@@ -800,8 +791,7 @@ class NameChecker():
         problems += self.check_symbols_declared_in_header()
 
         pattern_checks = [
-            ("public_macros", PUBLIC_MACRO_PATTERN),
-            ("internal_macros", INTERNAL_MACRO_PATTERN),
+            ("macros", MACRO_PATTERN),
             ("enum_consts", CONSTANTS_PATTERN),
             ("identifiers", IDENTIFIER_PATTERN)
         ]
@@ -887,11 +877,10 @@ class NameChecker():
         all_caps_names = {
             match.name
             for match
-            in self.parse_result["public_macros"] +
-            self.parse_result["internal_macros"] +
+            in self.parse_result["macros"] +
             self.parse_result["private_macros"] +
             self.parse_result["enum_consts"]
-            }
+        }
         typo_exclusion = re.compile(r"XXX|__|_$|^MBEDTLS_.*CONFIG_FILE$|"
                                     r"MBEDTLS_TEST_LIBTESTDRIVER*|"
                                     r"PSA_CRYPTO_DRIVER_TEST")

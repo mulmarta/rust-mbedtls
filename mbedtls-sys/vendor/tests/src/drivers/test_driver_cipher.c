@@ -18,9 +18,13 @@
  *  limitations under the License.
  */
 
-#include <test/helpers.h>
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
-#if defined(PSA_CRYPTO_DRIVER_TEST)
+#if defined(MBEDTLS_PSA_CRYPTO_DRIVERS) && defined(PSA_CRYPTO_DRIVER_TEST)
 #include "psa/crypto.h"
 #include "psa_crypto_cipher.h"
 #include "psa_crypto_core.h"
@@ -197,6 +201,10 @@ psa_status_t mbedtls_test_transparent_cipher_abort(
     mbedtls_transparent_test_driver_cipher_operation_t *operation)
 {
     mbedtls_test_driver_cipher_hooks.hits++;
+
+    if (operation->alg == 0) {
+        return PSA_SUCCESS;
+    }
 
 #if defined(MBEDTLS_TEST_LIBTESTDRIVER1) && \
     defined(LIBTESTDRIVER1_MBEDTLS_PSA_BUILTIN_CIPHER)
@@ -433,4 +441,4 @@ psa_status_t mbedtls_test_opaque_cipher_finish(
     (void) output_length;
     return PSA_ERROR_NOT_SUPPORTED;
 }
-#endif /* PSA_CRYPTO_DRIVER_TEST */
+#endif /* MBEDTLS_PSA_CRYPTO_DRIVERS && PSA_CRYPTO_DRIVER_TEST */

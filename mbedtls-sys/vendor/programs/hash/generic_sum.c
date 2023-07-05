@@ -17,7 +17,11 @@
  *  limitations under the License.
  */
 
-#include "mbedtls/build_info.h"
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
+#else
+#include MBEDTLS_CONFIG_FILE
+#endif
 
 #include "mbedtls/platform.h"
 
@@ -182,6 +186,11 @@ int main(int argc, char *argv[])
             mbedtls_printf("  %s\n", mbedtls_md_get_name(md_info));
             list++;
         }
+
+#if defined(_WIN32)
+        mbedtls_printf("\n  Press Enter to exit this program.\n");
+        fflush(stdout); getchar();
+#endif
 
         mbedtls_exit(exit_code);
     }

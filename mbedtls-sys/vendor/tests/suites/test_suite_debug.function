@@ -1,7 +1,6 @@
 /* BEGIN_HEADER */
 #include "mbedtls/debug.h"
 #include "string.h"
-#include "mbedtls/pk.h"
 
 struct buffer_data {
     char buf[2000];
@@ -58,23 +57,15 @@ void debug_print_msg_threshold(int threshold, int level, char *file,
     mbedtls_ssl_config conf;
     struct buffer_data buffer;
 
-    MD_PSA_INIT();
-
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
     memset(buffer.buf, 0, 2000);
     buffer.ptr = buffer.buf;
 
-    mbedtls_ssl_config_defaults(&conf,
-                                MBEDTLS_SSL_IS_CLIENT,
-                                MBEDTLS_SSL_TRANSPORT_STREAM,
-                                MBEDTLS_SSL_PRESET_DEFAULT);
-
-    mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
-
     TEST_ASSERT(mbedtls_ssl_setup(&ssl, &conf) == 0);
 
     mbedtls_debug_set_threshold(threshold);
+    mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
 
     mbedtls_debug_print_msg(&ssl, level, file, line,
                             "Text message, 2 == %d", 2);
@@ -84,7 +75,6 @@ void debug_print_msg_threshold(int threshold, int level, char *file,
 exit:
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
-    MD_PSA_DONE();
 }
 /* END_CASE */
 
@@ -96,21 +86,14 @@ void mbedtls_debug_print_ret(char *file, int line, char *text, int value,
     mbedtls_ssl_config conf;
     struct buffer_data buffer;
 
-    MD_PSA_INIT();
-
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
     memset(buffer.buf, 0, 2000);
     buffer.ptr = buffer.buf;
 
-    mbedtls_ssl_config_defaults(&conf,
-                                MBEDTLS_SSL_IS_CLIENT,
-                                MBEDTLS_SSL_TRANSPORT_STREAM,
-                                MBEDTLS_SSL_PRESET_DEFAULT);
+    TEST_ASSERT(mbedtls_ssl_setup(&ssl, &conf) == 0);
 
     mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
-
-    TEST_ASSERT(mbedtls_ssl_setup(&ssl, &conf) == 0);
 
     mbedtls_debug_print_ret(&ssl, 0, file, line, text, value);
 
@@ -119,7 +102,6 @@ void mbedtls_debug_print_ret(char *file, int line, char *text, int value,
 exit:
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
-    MD_PSA_DONE();
 }
 /* END_CASE */
 
@@ -131,21 +113,15 @@ void mbedtls_debug_print_buf(char *file, int line, char *text,
     mbedtls_ssl_config conf;
     struct buffer_data buffer;
 
-    MD_PSA_INIT();
-
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
     memset(buffer.buf, 0, 2000);
     buffer.ptr = buffer.buf;
 
-    mbedtls_ssl_config_defaults(&conf,
-                                MBEDTLS_SSL_IS_CLIENT,
-                                MBEDTLS_SSL_TRANSPORT_STREAM,
-                                MBEDTLS_SSL_PRESET_DEFAULT);
-
-    mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
 
     TEST_ASSERT(mbedtls_ssl_setup(&ssl, &conf) == 0);
+
+    mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
 
     mbedtls_debug_print_buf(&ssl, 0, file, line, text, data->x, data->len);
 
@@ -154,11 +130,10 @@ void mbedtls_debug_print_buf(char *file, int line, char *text,
 exit:
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
-    MD_PSA_DONE();
 }
 /* END_CASE */
 
-/* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C:!MBEDTLS_X509_REMOVE_INFO */
+/* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C */
 void mbedtls_debug_print_crt(char *crt_file, char *file, int line,
                              char *prefix, char *result_str)
 {
@@ -167,22 +142,15 @@ void mbedtls_debug_print_crt(char *crt_file, char *file, int line,
     mbedtls_ssl_config conf;
     struct buffer_data buffer;
 
-    MD_PSA_INIT();
-
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
     mbedtls_x509_crt_init(&crt);
     memset(buffer.buf, 0, 2000);
     buffer.ptr = buffer.buf;
 
-    mbedtls_ssl_config_defaults(&conf,
-                                MBEDTLS_SSL_IS_CLIENT,
-                                MBEDTLS_SSL_TRANSPORT_STREAM,
-                                MBEDTLS_SSL_PRESET_DEFAULT);
+    TEST_ASSERT(mbedtls_ssl_setup(&ssl, &conf) == 0);
 
     mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
-
-    TEST_ASSERT(mbedtls_ssl_setup(&ssl, &conf) == 0);
 
     TEST_ASSERT(mbedtls_x509_crt_parse_file(&crt, crt_file) == 0);
     mbedtls_debug_print_crt(&ssl, 0, file, line, prefix, &crt);
@@ -193,7 +161,6 @@ exit:
     mbedtls_x509_crt_free(&crt);
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
-    MD_PSA_DONE();
 }
 /* END_CASE */
 
@@ -206,24 +173,17 @@ void mbedtls_debug_print_mpi(char *value, char *file, int line,
     struct buffer_data buffer;
     mbedtls_mpi val;
 
-    MD_PSA_INIT();
-
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
     mbedtls_mpi_init(&val);
     memset(buffer.buf, 0, 2000);
     buffer.ptr = buffer.buf;
 
-    mbedtls_ssl_config_defaults(&conf,
-                                MBEDTLS_SSL_IS_CLIENT,
-                                MBEDTLS_SSL_TRANSPORT_STREAM,
-                                MBEDTLS_SSL_PRESET_DEFAULT);
-
-    mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
-
     TEST_ASSERT(mbedtls_ssl_setup(&ssl, &conf) == 0);
 
     TEST_ASSERT(mbedtls_test_read_mpi(&val, value) == 0);
+
+    mbedtls_ssl_conf_dbg(&conf, string_debug, &buffer);
 
     mbedtls_debug_print_mpi(&ssl, 0, file, line, prefix, &val);
 
@@ -233,6 +193,5 @@ exit:
     mbedtls_mpi_free(&val);
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
-    MD_PSA_DONE();
 }
 /* END_CASE */

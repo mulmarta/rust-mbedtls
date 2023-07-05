@@ -642,6 +642,7 @@ int mbedtls_des_crypt_cbc(mbedtls_des_context *ctx,
                           const unsigned char *input,
                           unsigned char *output)
 {
+    int i;
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char temp[8];
 
@@ -651,7 +652,9 @@ int mbedtls_des_crypt_cbc(mbedtls_des_context *ctx,
 
     if (mode == MBEDTLS_DES_ENCRYPT) {
         while (length > 0) {
-            mbedtls_xor(output, input, iv, 8);
+            for (i = 0; i < 8; i++) {
+                output[i] = (unsigned char) (input[i] ^ iv[i]);
+            }
 
             ret = mbedtls_des_crypt_ecb(ctx, output, output);
             if (ret != 0) {
@@ -671,7 +674,9 @@ int mbedtls_des_crypt_cbc(mbedtls_des_context *ctx,
                 goto exit;
             }
 
-            mbedtls_xor(output, output, iv, 8);
+            for (i = 0; i < 8; i++) {
+                output[i] = (unsigned char) (output[i] ^ iv[i]);
+            }
 
             memcpy(iv, temp, 8);
 
@@ -740,6 +745,7 @@ int mbedtls_des3_crypt_cbc(mbedtls_des3_context *ctx,
                            const unsigned char *input,
                            unsigned char *output)
 {
+    int i;
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char temp[8];
 
@@ -749,7 +755,9 @@ int mbedtls_des3_crypt_cbc(mbedtls_des3_context *ctx,
 
     if (mode == MBEDTLS_DES_ENCRYPT) {
         while (length > 0) {
-            mbedtls_xor(output, input, iv, 8);
+            for (i = 0; i < 8; i++) {
+                output[i] = (unsigned char) (input[i] ^ iv[i]);
+            }
 
             ret = mbedtls_des3_crypt_ecb(ctx, output, output);
             if (ret != 0) {
@@ -769,7 +777,9 @@ int mbedtls_des3_crypt_cbc(mbedtls_des3_context *ctx,
                 goto exit;
             }
 
-            mbedtls_xor(output, output, iv, 8);
+            for (i = 0; i < 8; i++) {
+                output[i] = (unsigned char) (output[i] ^ iv[i]);
+            }
 
             memcpy(iv, temp, 8);
 
